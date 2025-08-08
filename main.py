@@ -1,39 +1,30 @@
 import os
-import logging
-import requests
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler
+from flask import Flask
+import threading
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Set up Flask app to keep Render happy
+web = Flask(__name__)
 
-# Function that talks to Francessa on Poe.com
-async def ask_francessa(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_input = ' '.join(context.args)
-    if not user_input:
-        await update.message.reply_text("Ask something after the command. Example: /ask Hello Francessa!")
-        return
+@web.route('/')
+def home():
+    return "Francessa Bot is running."
 
-    # Simulated response for now
-    # Replace with Poe API logic once available or using Poe web scraping
-    response = f"Francessa says: I received your message – '{user_input}'."
+# Start Flask in a background thread
+def start_web():
+    port = int(os.environ.get('PORT', 10000))
+    web.run(host='0.0.0.0', port=port)
 
-    await update.message.reply_text(response)
+# Telegram bot
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
-# Start command
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hello! I’m Francessa, your AI assistant. Use /ask <your question>.")
+async def start(update, context):
+    await update.message.reply_text("Hello! I am Francessa 🤖")
 
 def main():
-    token = os.getenv("TELEGRAM_TOKEN")
-
-    app = ApplicationBuilder().token(token).build()
-
+    threading.Thread(target=start_web).start()
+    app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("ask", ask_francessa))
-
-    logger.info("Bot is running...")
     app.run_polling()
 
 if __name__ == "__main__":
